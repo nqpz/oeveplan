@@ -39,6 +39,7 @@
       segments:[]
     };
   }
+  var current_index = 0;
 
   window.revy = {
 		drawRehersal : function() {
@@ -290,8 +291,16 @@ window.loadSegment = function(segment){
   }
 }
 
-window.addSegmentRow = function(segment){
+window.setCurrent = function(i) {
+  current_index = i;
+
+  jQuery('tr', segmentsTable).removeClass('current');
+  jQuery('tr:nth-child(' + (i + 2) + ')', segmentsTable).addClass('current');
+}
+
+window.addSegmentRow = function(segment, i){
   var tr = $.TR({});
+//  var tr = $.TR({'data-index': i});
 
   if(segment.start && segment.end && segment.sketches){
     tr.appendChild($.TD({'class':'segment-time'},segment.start+' - '+segment.end));
@@ -307,6 +316,8 @@ window.addSegmentRow = function(segment){
   }
   tr.appendChild($.TD({},content));
   segmentsTable.appendChild(tr);
+
+  window.setCurrent(i);
 
 /*  jQuery(td).click(function(event){
     loadSegment(this.parentNode.rowIndex-1);
@@ -328,6 +339,10 @@ window.addSegmentRow = function(segment){
     for(i = 0; i < segmentData.segments.length;i++){
       content += segmentData.segments[i].start + '\n';
     }
+
+    if (current_index > thisRow.rowIndex - 1) {
+      current_index--;
+    }
   });
 }
 
@@ -335,7 +350,8 @@ window.addSegment = function(segment){
   if(segment.start && segment.end){
 
     segmentData.segments.push(segment);
-    addSegmentRow(segment);
+    var i_new = segmentData.segments.length - 1;
+    addSegmentRow(segment, i_new);
     var thedata = JSON.stringify(segmentData);
 
     localStorage.segmentData = thedata;
@@ -347,6 +363,53 @@ window.addSegment = function(segment){
 window.displayTime = function(segment){
   jQuery('#time').show();
   jQuery('#from').focus();
+}
+
+window.updateCurrentSegmentTime = function(){
+  jQuery('#time-edit').show();
+  jQuery('#from-edit').focus();
+}
+
+window.hideTimeEdit = function(){
+  jQuery('#time-edit').hide();
+}
+
+window.editSegmentTime = function(){
+  var segment_cur = segmentData.segments[current_index];
+  segment_cur.start = document.getElementById('from-edit').value;
+  segment_cur.end = document.getElementById('to-edit').value;
+  var thedata = JSON.stringify(segmentData);
+  localStorage.segmentData = thedata;
+
+  var current_current_index = current_index;
+  window.redrawRows();
+  window.setCurrent(current_current_index);
+//  current_index = current_current_index;
+}
+
+window.updateCurrentSegment = function() {
+  var segment_new = updateDisplay();
+  segmentData.segments[current_index] = segment_new;
+  var thedata = JSON.stringify(segmentData);
+  localStorage.segmentData = thedata;
+
+  var current_current_index = current_index;
+  window.redrawRows();
+  window.setCurrent(current_current_index);
+//  current_index = current_current_index;
+}
+
+window.redrawRows = function() {
+  var rows = jQuery('> tr', segmentsTable);
+  for (var i = 0; i < rows.length; i++) {
+    rows[i].remove();
+//    segmentsTable.removeChild(rows[i]);
+  }
+
+  for(var i=0;i<segmentData.segments.length;i++)
+  {
+    window.addSegmentRow(segmentData.segments[i], i);
+  }
 }
 
 window.hideTime = function(){
@@ -362,6 +425,8 @@ window.clearSegment = function(){
 }
 
 window.editSegment = function(index){
+//  updateCurrentSegment();
+  window.setCurrent(index);
     window.clearSegment();
   var segment = segmentData.segments[index];
     loadSegment(segment);
@@ -414,11 +479,13 @@ window.updateDisplay = function () {
       jQuery('#segments').draggable({handle:"thead"});
       for(var i=0;i<segmentData.segments.length;i++)
       {
-        window.addSegmentRow(segmentData.segments[i]);
+        window.addSegmentRow(segmentData.segments[i], i);
       }
       var currentSegment = JSON.parse(localStorage.currentSegment);
       window.loadSegment(currentSegment);
 		}
+
+
 	};
 		</script>
 	
@@ -432,6 +499,8 @@ window.updateDisplay = function () {
 <body>
 			<div id="menu"><button
       onclick="displayTime()">Tilføj segment</button>
+      <button onclick="updateCurrentSegment()">Opdater segment</button>
+      <button onclick="updateCurrentSegmentTime()">Opdater segmenttid</button>
       <button onclick="clearSegment()">Ryd segment</button>
       <!--      <button onclick="addSegment({})">Tilføj pause</button> -->
       <button onclick="loadSession()">Indlæs session</button>
@@ -456,6 +525,22 @@ window.updateDisplay = function () {
           <input type="button" onclick="hideTime()" value="Annulér"
           />&nbsp;<input type="button"
           onclick="addSegment(updateDisplay());hideTime()"
+          value="Tilføj"/></td></tr>
+          </table>
+        </form>
+      </div>
+      <div id="time-edit" style="display:none;">
+        <form id="time-form">
+          Hvornår starter og slutter dit segment?
+          <table>
+          <tr>
+          <td>Start time:</td><td> <input type="textfield" name="from" id="from-edit"
+          value="" /></td></tr><tr><td>
+          End time:</td><td> <input type="textfield" name="to" id="to-edit"
+          /></td></tr><tr><td></td><td>
+          <input type="button" onclick="hideTimeEdit()" value="Annulér"
+          />&nbsp;<input type="button"
+          onclick="editSegmentTime();hideTimeEdit()"
           value="Tilføj"/></td></tr>
           </table>
         </form>

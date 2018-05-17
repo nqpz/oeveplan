@@ -157,6 +157,9 @@
 #segments tr {
   height:40px;
 }
+#segments tr.current {
+  background-color: lightgray;
+}
 .segment-edit{
   text-align:center;
 }
